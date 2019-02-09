@@ -7,13 +7,14 @@ const img = cv.imread(argv[2], cv.CV_8UC1);
 
 var sig1 = 1.3;
 var sig2 = 2.6;
-var filterSize = 11;
 
-if(argv.length == 6){
+if(argv.length == 5){
 	sig1 = argv[3]*1;
 	sig2 = argv[4]*1;
-	filterSize = argv[5]|0;
 }
+if(sig2 == 0)
+	sig2 = 1.6*sig1;
+var filterSize = parseInt(sig2*4+3);
 console.log(sig1,sig2,filterSize);
 
 function gaussian(sig, x, y){
@@ -38,7 +39,6 @@ const data_dog = Array.from(new Array(rows)).map((v, i) =>
 		return filter.reduce((pre, cur, k) => pre+cur.reduce((pre, cur, l) => {
 			var i_ = i+k-fs_half;
 			var j_ = j+l-fs_half;
-			// if(i_ < 0 || i_ >= rows || j_ < 0 || j_ >= cols)return 0;
 			if(j_ < 0 || j_ >= cols)j_ = j-l+fs_half;
 			if(i_ < 0 || i_ >= rows)i_ = i-k+fs_half;
 			return pre + data[i_][j_] * cur;
@@ -52,11 +52,6 @@ const max_data = Math.max.apply(null, data_dog.map(v => Math.max.apply(null, v))
 console.log(min_data, max_data);
 
 const data_dog_abs = data_dog.map(v => v.map(v => {
-	// var vAbs = math.abs(v);
-	// return vAbs*255/max_data;
-	// return -v;
-	// return v>0?(v*255/max_data):(v*255/min_data);
-	// return v>0?0:(v)*255/min_data;
 	return v<0?0:(v)*255/max_data;
 }));
 const img_dog_abs = new cv.Mat(data_dog_abs, cv.CV_8UC1);
