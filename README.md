@@ -1,12 +1,20 @@
 # 動作確認環境
-- npm:3.10.9
-- node:7.2.1
+- npm:6.7.0
+- node:11.1.0
 
 # 環境設定
-## node install済
-- opencv4nodejsをインストール
+nodeはインストール済みとする．
+
+## ライブラリインストール
+- opencv4nodejs
 
 > $ npm install --save opencv4nodejs
+
+- math.js
+
+> $ npm install --save mathjs
+
+## 使う(かもしれない)画像のダウンロード
 
 - 顔画像のデータセットのダウンロード  
 http://vis-www.cs.umass.edu/lfw/
@@ -20,3 +28,19 @@ http://www.robots.ox.ac.uk/~vgg/data/pets/
 > node test.js
 
 猫の画像が表示されれば成功(キーを押すと終了)
+
+
+# プログラム
+
+## edge
+エッジ検出に関するプログラム
+
+- sobel.js
+- canny.js
+
+# 自作モジュール
+
+- convolution.js  
+畳み込み関数
+- map.js  
+全画素に対する処理
