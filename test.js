@@ -1,9 +1,13 @@
 const cv = require('opencv4nodejs');
 
-const emptyMat = new cv.Mat(100, 100, cv.CV_8UC3);
+const argv = process.argv.slice(2);
 
-cv.imreadAsync('image/images/Ragdoll_63.jpg', (err, mat) => {
-	console.log(mat);
-	cv.imshow('test', mat);
-	cv.waitKey();
-});
+if(argv.length < 1){
+	console.log('error: not found argv'+argv.length+'\nnode test <input image path>');
+	process.exit(1);
+}
+
+const image = cv.imread(argv[0]);
+
+cv.imshow('test', image);
+cv.waitKey();

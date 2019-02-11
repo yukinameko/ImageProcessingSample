@@ -88,7 +88,7 @@ const cannyImg = map(nmsImg, (v, i, j, img) => {
 		di = (theta<0?theta+math.PI:theta)<(math.PI/2)?-1:1;
 	}
 	if((img[j+dj]?(img[j+dj][i+di] > thresholdHigh):false) || (img[j-dj]?(img[j-dj][i-di] > thresholdHigh):false)){
-		return v;
+		return 255;
 	}
 	return 0;
 });
@@ -96,7 +96,7 @@ const cannyImg = map(nmsImg, (v, i, j, img) => {
 const gaussianImage = new cv.Mat(gaussianImg, cv.CV_8UC1);
 const sobelImage = new cv.Mat(sobelImg, cv.CV_32FC1);
 const nmsImage = new cv.Mat(nmsImg, cv.CV_32FC1);
-const cannyImage = new cv.Mat(cannyImg, cv.CV_32FC1);
+const cannyImage = new cv.Mat(cannyImg, cv.CV_8UC1);
 
 cv.imshow('gaussian image', gaussianImage);
 cv.imshow('sobel image', sobelImage);
@@ -106,9 +106,8 @@ cv.waitKey();
 
 const sobelImage_ = new cv.Mat(map(sobelImg, v=>math.abs(v*255)), cv.CV_8UC1);
 const nmsImage_ = new cv.Mat(map(nmsImg, v=>math.abs(v*255)), cv.CV_8UC1);
-const cannyImage_ = new cv.Mat(map(cannyImg, v=>math.abs(v*255)), cv.CV_8UC1);
 
 cv.imwrite('../outImage/canny-gaussian.png', gaussianImage);
 cv.imwrite('../outImage/canny-sobel.png', sobelImage_);
 cv.imwrite('../outImage/canny-non-maximum-supperession.png', nmsImage_);
-cv.imwrite('../outImage/canny.png', cannyImage_);
+cv.imwrite('../outImage/canny.png', cannyImage);

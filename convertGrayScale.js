@@ -1,12 +1,17 @@
 const cv = require('opencv4nodejs');
 
-const bgrImg1 = cv.imread('image/images/Ragdoll_63.jpg');
-const bgrImg2 = cv.imread('image/images/Ragdoll_64.jpg');
+const argv = process.argv.slice(2);
 
-const grayImg1 = bgrImg1.bgrToGray();
-const grayImg2 = bgrImg2.bgrToGray();
+if(argv.length < 1){
+	console.log('error: not found argv'+argv.length+'\nnode convertGrayScale <input image path>');
+	process.exit(1);
+}
 
-console.log(grayImg2.getDataAsArray());
+const grayImage = cv.imread(argv[0], cv.CV_8UC1);
 
-cv.imshow('gray image', grayImg1);
-// cv.waitKey();
+cv.imshow('gray image', grayImage);
+cv.waitKey();
+
+if(argv.length > 1){
+	cv.imwrite(argv[1], grayImage);
+}
