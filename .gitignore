@@ -1,4 +1,5 @@
 image/
 node_modules/
 outImage/
+package-lock.json
 *.png
