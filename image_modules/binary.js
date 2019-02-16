@@ -28,6 +28,5 @@ module.exports = (img, {threshold=0, maxVal=1}) => {
 			}
 		}
 	}
-	console.log(t);
 	return map(img, v => t<v?maxVal:0);
 };
