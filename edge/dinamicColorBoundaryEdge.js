@@ -1,10 +1,8 @@
 const cv = require('opencv4nodejs');
 const math = require('mathjs');
 
-const conv = require('../image_modules/convolution.js');
 const map = require('../image_modules/map.js');
 const bin = require('../image_modules/binary.js');
-const canny = require('../image_modules/canny.js');
 const sobel = require('../image_modules/sobel.js');
 
 const argv = process.argv.slice(2);
