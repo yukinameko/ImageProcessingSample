@@ -1,4 +1,7 @@
-module.exports.conv = require('../image_modules/convolution.js');
-module.exports.map = require('../image_modules/map.js');
-module.exports.parseInt = require('../image_modules/mapParseInt.js');
-module.exports.dots = require('../image_modules/dots.js');
+module.exports.conv = require('./convolution.js');
+module.exports.map = require('./map.js');
+module.exports.parseInt = require('./mapParseInt.js');
+module.exports.dots = require('./dots.js');
+module.exports.bin = require('./binary.js');
+module.exports.canny = require('./canny.js');
+module.exports.sobel = require('./sobel.js');

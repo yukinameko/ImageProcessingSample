@@ -52,6 +52,12 @@ edgeフォルダにまとめてある
 # 自作モジュール
 
 - convolution.js  
-畳み込み関数
+畳み込み
 - map.js  
 全画素に対する処理
+- sobel.js
+- canny.js
+- binary.js
+- mapParseInt.js
+- dots.js  
+行列計算
