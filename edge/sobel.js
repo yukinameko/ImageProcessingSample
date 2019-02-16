@@ -21,12 +21,10 @@ const sobelY = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
 const filterSizes = [sobelX.length, sobelX[0].length];
 
 // Sobelフィルタ適用
-const edgeXImg = conv(img, image.sizes, sobelX, filterSizes,
-	val=>(math.abs(val)>255?255:math.abs(val))
-);
-const edgeYImg = conv(img, image.sizes, sobelY, filterSizes,
-	val=>(math.abs(val)>255?255:math.abs(val))
-);
+const edgeXImg = conv.conv(img, image.sizes, sobelX, filterSizes,
+	{func:val=>(math.abs(val)>255?255:math.abs(val)), mode:conv.EXPAND});
+const edgeYImg = conv.conv(img, image.sizes, sobelY, filterSizes,
+	{func:val=>(math.abs(val)>255?255:math.abs(val)), mode:conv.EXPAND});
 
 const edgeImg = map(edgeXImg, (v, i, j) => {
 	const r = math.sqrt(v*v+edgeYImg[j][i]*edgeYImg[j][i]);
