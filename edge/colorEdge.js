@@ -35,9 +35,9 @@ const gaussianFilter = Array.from(new Array(gaussianFilterSize)).map((_, j) =>
 	}));
 
 // 変数準備
-const imgGBR = [];
-const imgGBRbin = [];
-const imgGBRsobel = [];
+const imgBGR = [];
+const imgBGRbin = [];
+const imgBGRsobel = [];
 const sizes = image.sizes;
 const rowNum = sizes[0]/splitsize;
 const colNum = sizes[1]/splitsize;
@@ -115,14 +115,14 @@ for(let n=0; n<3; n++){
 		}
 	}
 	// 2値化画像
-	imgGBRbin[n] = valBin;
+	imgBGRbin[n] = valBin;
 	// エッジ画像
-	imgGBRsobel[n] = val;
+	imgBGRsobel[n] = val;
 }
 // RGB画像に戻す処理
-const imgBin = map(imgGBRbin[0], (v,i,j) => [v, imgGBRbin[1][j][i], imgGBRbin[2][j][i]]);
+const imgBin = map(imgBGRbin[0], (v,i,j) => [v, imgBGRbin[1][j][i], imgBGRbin[2][j][i]]);
 // いずれかの色画像にエッジがあればカラー画像のエッジとして処理
-const imgEdge = map(imgGBRsobel[0], (v,i,j) => (v+imgGBRsobel[1][j][i]+imgGBRsobel[2][j][i])>0?255:0);
+const imgEdge = map(imgBGRsobel[0], (v,i,j) => (v+imgBGRsobel[1][j][i]+imgBGRsobel[2][j][i])>0?255:0);
 
 const imageBin = new cv.Mat(imgBin, cv.CV_8UC3);
 const imageEdge = new cv.Mat(imgEdge, cv.CV_8UC1);

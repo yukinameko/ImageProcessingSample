@@ -16,23 +16,23 @@ if(argv.length < 1){
 const image = cv.imread(argv[0]);
 const img = image.getDataAsArray();
 
-const imgGBR = [];
-const imgGBRbin = [];
-const imgGBRsobel = [];
+const imgBGR = [];
+const imgBGRbin = [];
+const imgBGRsobel = [];
 
 // 色ごとに操作
 for(let n=0; n<3; n++){
 	// 単色のデータ取得
-	imgGBR[n] = map(img, v=>v[n]);
+	imgBGR[n] = map(img, v=>v[n]);
 	// 2値化
-	imgGBRbin[n] = bin(imgGBR[n], {maxVal:255});
+	imgBGRbin[n] = bin(imgBGR[n], {maxVal:255});
 	// エッジ検出
-	imgGBRsobel[n] = sobel(imgGBRbin[n]).sobelImg;
+	imgBGRsobel[n] = sobel(imgBGRbin[n]).sobelImg;
 }
 // RGB画像に戻す処理
-const imgBin = map(imgGBRbin[0], (v,i,j) => [v, imgGBRbin[1][j][i], imgGBRbin[2][j][i]]);
+const imgBin = map(imgBGRbin[0], (v,i,j) => [v, imgBGRbin[1][j][i], imgBGRbin[2][j][i]]);
 // いずれかの色画像にエッジがあればカラー画像のエッジとして処理
-const imgEdge = map(imgGBRsobel[0], (v,i,j) => (v+imgGBRsobel[1][j][i]+imgGBRsobel[2][j][i])>0?255:0);
+const imgEdge = map(imgBGRsobel[0], (v,i,j) => (v+imgBGRsobel[1][j][i]+imgBGRsobel[2][j][i])>0?255:0);
 
 const imageBin = new cv.Mat(imgBin, cv.CV_8UC3);
 const imageEdge = new cv.Mat(imgEdge, cv.CV_8UC1);
