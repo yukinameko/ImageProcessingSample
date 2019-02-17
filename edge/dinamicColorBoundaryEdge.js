@@ -8,7 +8,7 @@ const sobel = require('../image_modules/sobel.js');
 const argv = process.argv.slice(2);
 
 if(argv.length < 1){
-	console.log('error: not found argv'+argv.length+'\nnode dinamicColorBoundaryEdge <input image path> (<gaussian filter size> <thresholdLow> <thresholdHigh>)');
+	console.log('error: not found argv'+argv.length+'\nnode dinamicColorBoundaryEdge <input image path>');
 	process.exit(1);
 }
 

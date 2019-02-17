@@ -18,7 +18,7 @@ const image = cv.imread(argv[0]);
 const img = image.getDataAsArray();
 
 // 定数設定
-let splitsize = 32;
+let splitsize = 64;
 let threshold = 1;
 if(argv.length == 3){
 	splitsize = argv[1]|0;
