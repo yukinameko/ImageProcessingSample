@@ -15,8 +15,7 @@ module.exports = (img) => {
 	const edgeYImg = conv.conv(img, sizes, sobelY, filterSizes, {mode:conv.EXPAND});
 
 	const sobelImg =map(edgeXImg, (v, i, j) => {
-		const r = math.sqrt(v*v+edgeYImg[j][i]*edgeYImg[j][i]);
-		return r>255?255:r;
+		return r = math.sqrt(v*v+edgeYImg[j][i]*edgeYImg[j][i]);
 	});
 
 	return {sobelImg:sobelImg, sobelX:edgeXImg, sobelY:edgeYImg};
