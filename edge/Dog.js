@@ -1,67 +1,66 @@
 const cv = require('opencv4nodejs');
 const math = require('mathjs');
 
-const argv = process.argv;
+const conv = require('../image_modules/convolution.js');
+const map = require('../image_modules/map.js');
+const bin = require('../image_modules/binary.js');
+const { max } = require('../image_modules/min-max.js');
 
-const img = cv.imread(argv[2], cv.CV_8UC1);
+const argv = process.argv.slice(2);
+
+if(argv.length < 1){
+	console.log('error: not found argv'+argv.length+'\nnode DoG <input image path>');
+	process.exit(1);
+}
+
+const image = cv.imread(argv[0], cv.CV_8UC1);
 
 var sig1 = 1.3;
-var sig2 = 2.6;
+var sig2 = 3.2;
 
-if(argv.length == 5){
-	sig1 = argv[3]*1;
-	sig2 = argv[4]*1;
+if(argv.length == 3){
+	sig1 = argv[1]-0;
+	sig2 = argv[2]-0;
 }
 if(sig2 == 0)
 	sig2 = 1.6*sig1;
-var filterSize = parseInt(sig2*4+3);
-console.log(sig1,sig2,filterSize);
+const filterSize = parseInt(sig2*4+1);
+const filterSizeHalf = (filterSize-1)/2;
 
 function gaussian(sig, x, y){
 	return math.exp(-(x*x+y*y)/2/sig/sig)/2/math.PI/sig/sig;
 }
 
-const data = img.getDataAsArray();
-const rows = img.rows;
-const cols = img.cols;
+const img = image.getDataAsArray();
 
-const fs_half = (filterSize-1)/2;
-const filter = Array.from(new Array(filterSize)).map((v, i) =>
+const filter1 = Array.from(new Array(filterSize)).map((v, i) =>
 	Array.from(new Array(filterSize)).map((v, j) => 
-		gaussian(sig1,i-fs_half,j-fs_half) - gaussian(sig2,i-fs_half,j-fs_half)
+		gaussian(sig1,i-filterSizeHalf,j-filterSizeHalf)
+		));
+const filter2 = Array.from(new Array(filterSize)).map((v, i) =>
+	Array.from(new Array(filterSize)).map((v, j) => 
+		gaussian(sig2,i-filterSizeHalf,j-filterSizeHalf)
 		));
 
-const filter_sum = filter.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
-console.log(`gaussian filter value sum = ${filter_sum}`);
 
-const data_dog = Array.from(new Array(rows)).map((v, i) =>
-	Array.from(new Array(cols)).map((v, j) => {
-		return filter.reduce((pre, cur, k) => pre+cur.reduce((pre, cur, l) => {
-			var i_ = i+k-fs_half;
-			var j_ = j+l-fs_half;
-			if(j_ < 0 || j_ >= cols)j_ = j-l+fs_half;
-			if(i_ < 0 || i_ >= rows)i_ = i-k+fs_half;
-			return pre + data[i_][j_] * cur;
-		}, 0) ,0);
-}));
+const filter1_sum = filter1.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
+const filter2_sum = filter2.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
 
-const img_dog = new cv.Mat(data_dog, cv.CV_8UC1);
+const filter = map(filter1, (v, i, j) => v/filter1_sum-filter2[j][i]/filter2_sum);
 
-const min_data = Math.min.apply(null, data_dog.map(v => Math.min.apply(null, v)));
-const max_data = Math.max.apply(null, data_dog.map(v => Math.max.apply(null, v)));
-console.log(min_data, max_data);
+const img_dog = conv.conv(img, image.sizes, filter, [filterSize,filterSize], {mode:conv.EXPAND});
 
-const data_dog_abs = data_dog.map(v => v.map(v => {
-	return v<0?0:(v)*255/max_data;
-}));
-const img_dog_abs = new cv.Mat(data_dog_abs, cv.CV_8UC1);
-// const img_gaus1 = img.gaussianBlur(cv.Size(filterSize, filterSize), sig1, sig1); 
-// const img_gaus2 = img.gaussianBlur(cv.Size(filterSize, filterSize), sig2, sig2); 
+const maxVal = max(img_dog);
 
-const img_dog_abs_thresh = img_dog_abs.threshold(10, 255, 0);
+const img_dog_abs = map(img_dog, v => v<0?0:(v/maxVal*255));
+const img_dog_abs_bin = bin(img_dog_abs, {threshold:20, maxVal:255});
 
-cv.imshow('dog', img_dog);
-// cv.imshow('dog-org', img_gaus1.sub(img_gaus2));
-cv.imshow('dog-abs', img_dog_abs);
-cv.imshow('dog-abs-threshold', img_dog_abs_thresh);
+const image_dog_abs = new cv.Mat(img_dog_abs, cv.CV_8UC1);
+const image_dog_abs_bin = new cv.Mat(img_dog_abs_bin, cv.CV_8UC1);
+
+cv.imshow('dog-abs', image_dog_abs);
+cv.imshow('dog-abs-threshold', image_dog_abs_bin);
 cv.waitKey();
+
+cv.imwrite('../outImage/DoG.png', image_dog_abs);
+cv.imwrite('../outImage/DoG-bin.png', image_dog_abs_bin);
