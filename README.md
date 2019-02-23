@@ -45,19 +45,31 @@ http://www.robots.ox.ac.uk/~vgg/data/pets/
 ## エッジ検出
 edgeフォルダにまとめてある
 
-- sobel.js
-- canny.js
-- DoG.js
+- sobel.js  
+	Sobelフィルタ
+- canny.js  
+	Canny法
+- dinamicColorBoundaryEdge.js  
+	色情報を用いたエッジ検出
+- colorEdge.js  
+	上記の改良版
+- DoG.js  
+	DoGフィルタ
+- FDoG.js  
+	流れ場を利用したエッジ検出(FDoG)
 
-# 自作モジュール
+## 自作モジュール
 
 - convolution.js  
-畳み込み
+	畳み込み
 - map.js  
-全画素に対する処理
+	全画素に対する処理
+- gaussian.js
 - sobel.js
 - canny.js
 - binary.js
 - mapParseInt.js
+- mim-max.js
+- normalize.js
 - dots.js  
 行列計算
