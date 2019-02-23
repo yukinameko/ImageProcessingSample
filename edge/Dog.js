@@ -14,9 +14,10 @@ if(argv.length < 1){
 }
 
 const image = cv.imread(argv[0], cv.CV_8UC1);
+const img = image.getDataAsArray();
 
-var sig1 = 1.3;
-var sig2 = 3.2;
+let sig1 = 1.3;
+let sig2 = 3.2;
 
 if(argv.length == 3){
 	sig1 = argv[1]-0;
@@ -31,8 +32,7 @@ function gaussian(sig, x, y){
 	return math.exp(-(x*x+y*y)/2/sig/sig)/2/math.PI/sig/sig;
 }
 
-const img = image.getDataAsArray();
-
+// DoGフィルタの作成
 const filter1 = Array.from(new Array(filterSize)).map((v, i) =>
 	Array.from(new Array(filterSize)).map((v, j) => 
 		gaussian(sig1,i-filterSizeHalf,j-filterSizeHalf)
@@ -42,17 +42,21 @@ const filter2 = Array.from(new Array(filterSize)).map((v, i) =>
 		gaussian(sig2,i-filterSizeHalf,j-filterSizeHalf)
 		));
 
-
+// 各フィルタの総和計算
 const filter1_sum = filter1.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
 const filter2_sum = filter2.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
 
+// フィルタを正規化しつつ合成
 const filter = map(filter1, (v, i, j) => v/filter1_sum-filter2[j][i]/filter2_sum);
 
+// DoGフィルタ適用
 const img_dog = conv.conv(img, image.sizes, filter, [filterSize,filterSize], {mode:conv.EXPAND});
 
+// abs
 const maxVal = max(img_dog);
-
 const img_dog_abs = map(img_dog, v => v<0?0:(v/maxVal*255));
+
+// 2値化
 const img_dog_abs_bin = bin(img_dog_abs, {threshold:20, maxVal:255});
 
 const image_dog_abs = new cv.Mat(img_dog_abs, cv.CV_8UC1);
