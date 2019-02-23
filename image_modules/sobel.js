@@ -19,5 +19,5 @@ module.exports = (img) => {
 		return r>255?255:r;
 	});
 
-	return {sobelImg:sobelImg, sobelX:sobelX, sobelY:sobelY};
+	return {sobelImg:sobelImg, sobelX:edgeXImg, sobelY:edgeYImg};
 }
