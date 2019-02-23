@@ -7,7 +7,7 @@ module.exports.EXPAND = EXPAND;
 module.exports.conv = (img, imgSizes, filter, filterSize, {func=null, mode=ZEROPADDING} = {func:null, mode:ZEROPADDING}) => {
 	const cols = imgSizes[1];
 	const rows = imgSizes[0];
-	const filterCols = filterSize[0];
+	const filterCols = filterSize[1];
 	const filterRows = filterSize[0];
 	const filterColsHalf = (filterCols-1)/2;
 	const filterRowsHalf = (filterRows-1)/2;
