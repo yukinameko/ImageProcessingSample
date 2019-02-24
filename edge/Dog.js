@@ -43,28 +43,28 @@ const filter2 = Array.from(new Array(filterSize)).map((v, i) =>
 		));
 
 // 各フィルタの総和計算
-const filter1_sum = filter1.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
-const filter2_sum = filter2.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
+const sumFilter1 = filter1.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
+const sumFilter2 = filter2.reduce((pre ,cur) => pre+cur.reduce((pre, cur) => pre+cur, 0),0);
 
 // フィルタを正規化しつつ合成
-const filter = map(filter1, (v, i, j) => v/filter1_sum-filter2[j][i]/filter2_sum);
+const filter = map(filter1, (v, i, j) => v/sumFilter1-filter2[j][i]/sumFilter2);
 
 // DoGフィルタ適用
-const img_dog = conv.conv(img, image.sizes, filter, [filterSize,filterSize], {mode:conv.EXPAND});
+const imgDog = conv.conv(img, image.sizes, filter, [filterSize,filterSize], {mode:conv.EXPAND});
 
 // abs
-const maxVal = max(img_dog);
-const img_dog_abs = map(img_dog, v => v<0?0:(v/maxVal*255));
+const maxVal = max(imgDog);
+const imgDogAbs = map(imgDog, v => v<0?0:(v/maxVal*255));
 
 // 2値化
-const img_dog_abs_bin = bin(img_dog_abs, {threshold:20, maxVal:255});
+const imgDogAbsBin = bin(imgDogAbs, {threshold:20, maxVal:255});
 
-const image_dog_abs = new cv.Mat(img_dog_abs, cv.CV_8UC1);
-const image_dog_abs_bin = new cv.Mat(img_dog_abs_bin, cv.CV_8UC1);
+const imageDogAbs = new cv.Mat(imgDogAbs, cv.CV_8UC1);
+const imageDogAbsBin = new cv.Mat(imgDogAbsBin, cv.CV_8UC1);
 
-cv.imshow('dog-abs', image_dog_abs);
-cv.imshow('dog-abs-threshold', image_dog_abs_bin);
+cv.imshow('dog-abs', imageDogAbs);
+cv.imshow('dog-abs-threshold', imageDogAbsBin);
 cv.waitKey();
 
-cv.imwrite('../outImage/DoG.png', image_dog_abs);
-cv.imwrite('../outImage/DoG-bin.png', image_dog_abs_bin);
+cv.imwrite('../outImage/DoG.png', imageDogAbs);
+cv.imwrite('../outImage/DoG-bin.png', imageDogAbsBin);
