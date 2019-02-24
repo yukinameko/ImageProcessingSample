@@ -65,7 +65,7 @@ g = normalize(g);
 
 // ETFを複数回回すループ
 for(let n=0;n<3;n++){
-	console.log(`Edge Tangent Flow calculation ${n} iteration`);
+	console.log(`Edge Tangent Flow ${n} iteration`);
 
 	const tx_cur = tx.concat();
 	const ty_cur = ty.concat();
