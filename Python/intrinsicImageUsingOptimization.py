@@ -1,95 +1,168 @@
 import numpy as np
 import cv2
 import math
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import sys, os
 
 def weightFunction(Ii, Ij, sigma_T, Yi, Yj, sigma_Y):
 	a = math.acos(np.dot(Ii, Ij))
 	return math.exp(-(a**2/sigma_T + (Yi-Yj)**2/sigma_Y))
+	# return math.exp(-((Yi-Yj)**2)/sigma_Y)
 
-def Energy(imgNormalize, sInvert, R, weights):
-	ER = R[1:-1, 1:-1] - weights[0]*R[:-2, :-2]
-	ER -= weights[1]*R[:-2, 1:-1]
-	ER -= weights[2]*R[:-2, 2:]
-	ER -= weights[3]*R[1:-1, 2:]
-	ER -= weights[4]*R[2:, 2:]
-	ER -= weights[5]*R[2:, 1:-1]
-	ER -= weights[6]*R[2:, :-2]
-	ER -= weights[7]*R[1:-1, :-2]
+def computeER(R, weights, h, w, Range, r):
+	ER = R[r:h+r, r:w+r]
+	for dh in range(Range):
+		for dw in range(Range):
+			ER -= weights[dh, dw] * R[dh:h+dh, dw:w+dw]
 
-	ER = (ER**2).sum()
+	return ER
 
-	Es = imgNormalize[1:-1, 1:-1]*sInvert - R[1:-1,1:-1]
-	Es = (Es**2).sum()
-
-	return ER + Es
-
-def EnergyDR(imgNormalize, sInvert, R, weights):
-	ER = R[1:-1, 1:-1] - weights[0]*R[:-2, :-2]
-	ER -= weights[1]*R[:-2, 1:-1]
-	ER -= weights[2]*R[:-2, 2:]
-	ER -= weights[3]*R[1:-1, 2:]
-	ER -= weights[4]*R[2:, 2:]
-	ER -= weights[5]*R[2:, 1:-1]
-	ER -= weights[6]*R[2:, :-2]
-	ER -= weights[7]*R[1:-1, :-2]
-
-	ER = np.pad(ER, (1,1), 'edge')
-
-	ERDR = ER[1:-1, 1:-1] - weigths[0]*ER[2:, 2:]
-	ERDR -= weigths[1]*ER[2:, 1:-1]
-	ERDR -= weigths[2]*ER[2:, :-2]
-	ERDR -= weigths[3]*ER[1:-1, :-2]
-	ERDR -= weigths[4]*ER[:-2, :-2]
-	ERDR -= weigths[5]*ER[:-2, 1:-1]
-	ERDR -= weigths[6]*ER[:-2, 2:]
-	ERDR -= weigths[7]*ER[1:-1, 2:]
-
-	ERDR -= imgNormalize[1:-1, 1:-1]*sInvert - R[1:-1, 1:-1]
+def computeERDR(ER, weights, h, w, Range, r):
+	ERDR = ER[r:h+r, r:w+r]
+	for dh in range(Range):
+		for dw in range(Range):
+			ERDR -= weights[dh, dw] * ER[Range-dh-1:h+Range-dh-1, Range-dw-1:w+Range-dw-1]
 
 	return ERDR
 
-def EnergyDs(imgNormalize, sInvert, R):
-	EDs = imgNormalize[1:-1, 1:-1]*(imgNormalize[1:-1, 1:-1]*sInvert - R[1:-1, 1:-1])
+def Energy(imgNormalize, sInvert, R, weights, h, w, Range, r):
+	ER = computeER(R, weights, h, w, Range, r)
 
-	return EDs
+	ER = (ER**2).sum()
+
+	Es = imgNormalize[r:-r, r:-r]*sInvert - R[r:-r,r:-r]
+	Es = (Es**2).sum()
+
+	# print(ER/Es)
+
+	return ER + Es*10
+
+def EnergyDR(imgNormalize, sInvert, R, weights, h, w, Range, r):
+	ER = computeER(R, weights, h, w, Range, r)
+
+	ER = np.pad(ER, [(r,r), (r,r),(0,0)], 'edge')
+
+	ERDR = computeERDR(ER, weights, h, w, Range, r)
+
+	ERDR -= imgNormalize[r:-r, r:-r]*sInvert - R[r:-r, r:-r]
+
+	return ERDR
+
+def EnergyDs(imgNormalize, sInvert, R, r):
+	EDs = imgNormalize[r:-r, r:-r]*(imgNormalize[r:-r, r:-r]*sInvert - R[r:-r, r:-r])
+
+	return EDs.sum(axis = 2)
+
+def computeWeights(img, imgGray, h, w, R, r, sigma_Y, sigma_T):
+	weights = np.zeros((R, R))
+	for dh in range(R):
+		for dw in range(R):
+			weights[dh, dw] = weightFunction(img[h, w], img[h+dh-r, w+dw-r], sigma_T, imgGray
+				[h, w], imgGray[h+dh-r, w+dw-r], sigma_Y)
+
+	weights[r, r] = 0
+
+	weights /= weights.sum()
+
+	return weights
 
 
 def intrinsicImage(image):
-	img = np.array(image)
+	img = np.array(image).astype('float')
 	height = img.shape[0]
 	width = img.shape[1]
-	weights = np.zeros((8, height, width, 3))
+	Range = 5
+	n_R = 1/100000
+	n_s = 1/10000
+	a_R = 0.9
+	a_s = 0.9
+	r = int((Range-1)/2)
+	weights = np.zeros((Range, Range, height, width, 3))
 
-	img = np.pad(img, [(1,1),(1,1),(0,0)], 'edge')
-	imgGray = np.array(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-	imgGray = np.pad(imgGray, [(1,1),(1,1)], 'edge')
+	img = np.pad(img, [(r,r),(r,r),(0,0)], 'edge')
+	imgGray = np.array(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)).astype('float')
+	imgGray = np.pad(imgGray, [(r,r),(r,r)], 'edge')
 	imgNormalize = img / 255.0 / math.sqrt(3)
-	sInvert = np.ones((height, width, 3)) / 2.0
+	sInvert = np.ones((height, width, 3))
+	# sInvert = np.ones((height, width, 3)) / 255.0
+	# sInvert = np.zeros((height, width, 3))
+	# sInvert[:, :, 0] = 255/(imgGray[r:-r, r:-r]+0.1)
+	sInvert[:,:,1] = sInvert[:,:,0]
+	sInvert[:,:,2] = sInvert[:,:,0]
 	R = imgNormalize.copy()
 
 	sigma_T = 3.23518
-	sigma_Y = (imgGray[1:-1, 1:-1]**2).sum()/height/width-(imgGray[1:-1, 1:-1].sum()/height/width)**2
+	sigma_Y = (imgGray[r:-r, r:-r]**2).sum()/height/width-(imgGray[r:-r, r:-r].sum()/height/width)**2
 
 	for h in range(0, height):
 		for w in range(0, width):
-			weights[0, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h,w],     sigma_T, imgGray[h+1,w+1], imgGray[h,w], sigma_Y)
-			weights[1, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h,w+1],   sigma_T, imgGray[h+1,w+1], imgGray[h,w+1], sigma_Y)
-			weights[2, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h,w+2],   sigma_T, imgGray[h+1,w+1], imgGray[h,w+2], sigma_Y)
-			weights[3, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h+1,w+2], sigma_T, imgGray[h+1,w+1], imgGray[h+1,w+2], sigma_Y)
-			weights[4, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h+2,w+2], sigma_T, imgGray[h+1,w+1], imgGray[h+2,w+2], sigma_Y)
-			weights[5, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h+2,w+1], sigma_T, imgGray[h+1,w+1], imgGray[h+2,w+1], sigma_Y)
-			weights[6, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h+2,w],   sigma_T, imgGray[h+1,w+1], imgGray[h+2,w], sigma_Y)
-			weights[7, h, w, 0] = weightFunction(imgNormalize[h+1, w+1], imgNormalize[h+1,w],   sigma_T, imgGray[h+1,w+1], imgGray[h+1,w], sigma_Y)
+			weights[:, :, h, w, 0] = computeWeights(imgNormalize, imgGray, h+r, w+r, Range, r, sigma_Y, sigma_T)
 
-	for i in range(8):
-		weights[i, :, :, 1] = weights[i, :, :, 0]
-		weights[i, :, :, 2] = weights[i, :, :, 0]
+	weights[:, :, :, :, 1] = weights[:, :, :, :, 0]
+	weights[:, :, :, :, 2] = weights[:, :, :, :, 0]
 
-	print(Energy(imgNormalize, sInvert, R, weights).shape)
-	print(EnergyDR(imgNormalize, sInvert, R, weights).shape)
-	print(EnergyDs(imgNormalize, sInvert, R).shape)
+	# print(Energy(imgNormalize, sInvert, R, weights))
+	# print(EnergyDR(imgNormalize, sInvert, R, weights).shape)
+	# print(EnergyDs(imgNormalize, sInvert, R).shape)
+
+	# E = Energy(img, sInvert, R, weights)
+	imgNormalize = imgNormalize * math.sqrt(3)
+	E = Energy(imgNormalize, sInvert, R, weights, height, width, Range, r)
+	print(E)
+	preE = E + 100
+	v_R = 0
+	v_s = 0
+
+	# data = []
+	# data.push(E)
+	# dataCount = 0
+
+	while preE - E > 1:
+		# EdR = EnergyDR(img, sInvert, R, weights)
+		# Eds = EnergyDs(img, sInvert, R)
+		EdR = EnergyDR(imgNormalize, sInvert, R, weights, height, width, Range, r)
+		Eds = EnergyDs(imgNormalize, sInvert, R, r)
+		v_R = a_R*v_R - n_R*EdR
+		v_s = a_s*v_s - n_s+Eds
+		R[r:-r, r:-r] = R[r:-r, r:-r] + v_R
+		sInvert[:,:,0] = sInvert[:,:,0] + v_s
+		# R[r:-r, r:-r] = R[r:-r, r:-r] - EdR/10000
+		# sInvert[:,:,0] = sInvert[:,:,0] - Eds/1000
+		sInvert[:,:,1] = sInvert[:,:,0]
+		sInvert[:,:,2] = sInvert[:,:,0]
+		# sInvert[sInvert < 0] = 0
+
+		preE = E
+		# E = Energy(img, sInvert, R, weights)
+		E = Energy(imgNormalize, sInvert, R, weights, height, width, Range, r)
+		print('E = {:.3f} dE = {:.3f}'.format(E, preE - E))
+		# R[R < 0] = 0
+		# R[R > 1] = 1
+
+		# if dataCount == 10:
+		# 	dataCount = 0
+		# 	data.push(E)
+
+		if 'q' == cv2.waitKey(1):
+			break
+
+		# cv2.namedWindow('window')
+		# cv2.imshow('window', (R*255).astype('uint8'))
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
+
+	print('R < 0 : ', sum(R < 0).sum())
+	print('R > 1 : ', sum(R > 1).sum())
+	print(R[R > 1])
+	print('sInv < 0 : ', sum(sInvert < 0).sum())
+	print('sInv > 1 : ', sum(sInvert > 1).sum())
+	print(sInvert[sInvert > 1])
+
+	return R[r:-r, r:-r], 1/sInvert
+
 
 
 argv = sys.argv
@@ -111,7 +184,17 @@ if os.path.exists(filePath):
 		print('extend : ' + os.path.splitext(filePath)[1])
 
 		image = cv2.imread(filePath)
-		intrinsicImage(image)
+		R, s = intrinsicImage(image)
+
+		_img = (R*s*255).astype('uint8')
+
+		# plt.imshow(_img)
+		# plt.show()
+
+		cv2.namedWindow('window')
+		cv2.imshow('window', (R*255).astype('uint8'))
+		cv2.waitKey(0)
+		cv2.destroyAllWindows()
 
 else:
 	sys.exit()
