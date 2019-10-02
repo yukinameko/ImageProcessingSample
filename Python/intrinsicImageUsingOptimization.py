@@ -12,8 +12,16 @@ def weightFunction(Ii, Ij, sigma_T, Yi, Yj, sigma_Y):
 	return math.exp(-(a**2/sigma_T + (Yi-Yj)**2/sigma_Y))
 	# return math.exp(-((Yi-Yj)**2)/sigma_Y)
 
+def computeR(R, weights, h, w, Range, r):
+	ER = np.zeros((h, w, 3))
+	for dh in range(Range):
+		for dw in range(Range):
+			ER += weights[dh, dw] * R[dh:h+dh, dw:w+dw]
+
+	return ER
+
 def computeER(R, weights, h, w, Range, r):
-	ER = R[r:h+r, r:w+r]
+	ER = np.copy(R[r:h+r, r:w+r])
 	for dh in range(Range):
 		for dw in range(Range):
 			ER -= weights[dh, dw] * R[dh:h+dh, dw:w+dw]
@@ -38,7 +46,7 @@ def Energy(imgNormalize, sInvert, R, weights, h, w, Range, r):
 
 	# print(ER/Es)
 
-	return ER + Es*10
+	return ER + Es
 
 def EnergyDR(imgNormalize, sInvert, R, weights, h, w, Range, r):
 	ER = computeER(R, weights, h, w, Range, r)
@@ -63,7 +71,7 @@ def computeWeights(img, imgGray, h, w, R, r, sigma_Y, sigma_T):
 			weights[dh, dw] = weightFunction(img[h, w], img[h+dh-r, w+dw-r], sigma_T, imgGray
 				[h, w], imgGray[h+dh-r, w+dw-r], sigma_Y)
 
-	weights[r, r] = 0
+	weights[r, r] = 1
 
 	weights /= weights.sum()
 
@@ -100,6 +108,9 @@ def intrinsicImage(image):
 	for h in range(0, height):
 		for w in range(0, width):
 			weights[:, :, h, w, 0] = computeWeights(imgNormalize, imgGray, h+r, w+r, Range, r, sigma_Y, sigma_T)
+			# weight = weights[r, r, h, w, 0]
+			# weights[:, :, h, w, 0] /= -weight
+			# weights[r, r, h, w, 0] = 1 / weight
 
 	weights[:, :, :, :, 1] = weights[:, :, :, :, 0]
 	weights[:, :, :, :, 2] = weights[:, :, :, :, 0]
@@ -112,7 +123,7 @@ def intrinsicImage(image):
 	imgNormalize = imgNormalize * math.sqrt(3)
 	E = Energy(imgNormalize, sInvert, R, weights, height, width, Range, r)
 	print(E)
-	preE = E + 100
+	preE = 0
 	v_R = 0
 	v_s = 0
 
@@ -120,25 +131,44 @@ def intrinsicImage(image):
 	# data.push(E)
 	# dataCount = 0
 
-	while preE - E > 1:
+	while True:
 		# EdR = EnergyDR(img, sInvert, R, weights)
 		# Eds = EnergyDs(img, sInvert, R)
-		EdR = EnergyDR(imgNormalize, sInvert, R, weights, height, width, Range, r)
-		Eds = EnergyDs(imgNormalize, sInvert, R, r)
-		v_R = a_R*v_R - n_R*EdR
-		v_s = a_s*v_s - n_s+Eds
-		R[r:-r, r:-r] = R[r:-r, r:-r] + v_R
-		sInvert[:,:,0] = sInvert[:,:,0] + v_s
-		# R[r:-r, r:-r] = R[r:-r, r:-r] - EdR/10000
-		# sInvert[:,:,0] = sInvert[:,:,0] - Eds/1000
+
+		# EdR = EnergyDR(imgNormalize, sInvert, R, weights, height, width, Range, r)
+		# Eds = EnergyDs(imgNormalize, sInvert, R, r)
+		# v_R = a_R*v_R - n_R*EdR
+		# v_s = a_s*v_s - n_s+Eds
+		# R[r:-r, r:-r] = R[r:-r, r:-r] + v_R
+		# sInvert[:,:,0] = sInvert[:,:,0] + v_s
+		# # R[r:-r, r:-r] = R[r:-r, r:-r] - EdR/10000
+		# # sInvert[:,:,0] = sInvert[:,:,0] - Eds/1000
+		# sInvert[:,:,1] = sInvert[:,:,0]
+		# sInvert[:,:,2] = sInvert[:,:,0]
+		# sInvert[sInvert < 0] = 0
+
+		R[r:-r, r:-r] = computeR(R, weights, height, width, Range, r)
+		sInvert = R[r:-r, r:-r]/(imgNormalize[r:-r, r:-r]+0.0001)
+		sInvert[sInvert < 1] = 1
+		sInvert[:,:,0] = sInvert.mean(axis=2)
 		sInvert[:,:,1] = sInvert[:,:,0]
 		sInvert[:,:,2] = sInvert[:,:,0]
-		# sInvert[sInvert < 0] = 0
+		R[r:-r, r:-r] = imgNormalize[r:-r, r:-r]*sInvert
+		# R[R < 0] = 0
+		R[R > 1] = 1
 
 		preE = E
 		# E = Energy(img, sInvert, R, weights)
 		E = Energy(imgNormalize, sInvert, R, weights, height, width, Range, r)
 		print('E = {:.3f} dE = {:.3f}'.format(E, preE - E))
+
+		if np.isinf(E):
+			print('E is inf')
+			break
+
+		if preE - E < 0.1:
+		# if abs(preE - E) < 0.1:
+			break
 		# R[R < 0] = 0
 		# R[R > 1] = 1
 
@@ -146,8 +176,8 @@ def intrinsicImage(image):
 		# 	dataCount = 0
 		# 	data.push(E)
 
-		if 'q' == cv2.waitKey(1):
-			break
+		# if 'q' == cv2.waitKey(1):
+		# 	break
 
 		# cv2.namedWindow('window')
 		# cv2.imshow('window', (R*255).astype('uint8'))
@@ -156,10 +186,10 @@ def intrinsicImage(image):
 
 	print('R < 0 : ', sum(R < 0).sum())
 	print('R > 1 : ', sum(R > 1).sum())
-	print(R[R > 1])
-	print('sInv < 0 : ', sum(sInvert < 0).sum())
-	print('sInv > 1 : ', sum(sInvert > 1).sum())
-	print(sInvert[sInvert > 1])
+	# print(R[R > 1])
+	print('sInv < 0 : ', sum(sInvert < 1).sum())
+	print('sInv > 1 : ', sum(sInvert >= 1).sum())
+	# print(sInvert[sInvert > 1])
 
 	return R[r:-r, r:-r], 1/sInvert
 
@@ -186,7 +216,7 @@ if os.path.exists(filePath):
 		image = cv2.imread(filePath)
 		R, s = intrinsicImage(image)
 
-		_img = (R*s*255).astype('uint8')
+		# _img = (R*s*255).astype('uint8')
 
 		# plt.imshow(_img)
 		# plt.show()
